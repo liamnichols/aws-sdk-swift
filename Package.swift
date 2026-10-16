@@ -2251,11 +2251,6 @@ extension Target.Dependency {
     static var SmithyXML: Self { .product(name: "SmithyXML", package: "smithy-swift") }
 }
 
-extension Target.PluginUsage {
-    // Smithy plugins
-    static var SmithyCodeGeneratorPlugin: Self { .plugin(name: "SmithyCodeGeneratorPlugin", package: "smithy-swift") }
-}
-
 // MARK: Base Package
 
 let package = Package(
@@ -2494,7 +2489,11 @@ private var serviceTargets: [Target] {
 }
 
 private func target(_ service: ServiceClientData) -> Target {
-    .target(name: service.name, dependencies: service.dependencies, path: service.sourcePath, plugins: [.SmithyCodeGeneratorPlugin])
+    // Patched: SmithyCodeGeneratorPlugin output is pre-generated into `<sourcePath>/Generated/`,
+    // so the build tool plugin is not used. `swift-settings.json` (plugin input) is excluded from the target.
+    let settingsPath = "\(Context.packageDirectory)/\(service.sourcePath)/swift-settings.json"
+    let exclude = FileManager.default.fileExists(atPath: settingsPath) ? ["swift-settings.json"] : []
+    return .target(name: service.name, dependencies: service.dependencies, path: service.sourcePath, exclude: exclude)
 }
 
 private var serviceTestTargets: [Target] {
